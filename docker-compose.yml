@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: slipstream_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: slipstream_demo
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_PASSWORD: secret
+      MYSQL_USER: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - slipstream_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PHP Laravel Application Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slipstream_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - slipstream_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=slipstream_demo
+      - DB_USERNAME=root
+      - DB_PASSWORD=secret
+    entrypoint: ["/docker-entrypoint.sh"]
+
+  # Node.js Service for Asset Compilation
+  node:
+    image: node:18-alpine
+    container_name: slipstream_node
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    networks:
+      - slipstream_network
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - app
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: slipstream_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - slipstream_network
+    depends_on:
+      - app
+      - node
+
+networks:
+  slipstream_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  node_modules:
+    driver: local
+

@@ -1,7 +1,7 @@
 <template>
-    <aside class="fixed left-0 top-0 h-full w-64 bg-gray-800 text-white flex flex-col z-10">
+    <aside class="fixed left-0 top-0 h-screen w-64 bg-gray-800 text-white flex flex-col z-10 shadow-lg">
         <div class="p-6 border-b border-gray-700">
-            <h1 class="text-2xl font-bold">SLIPSTREAM</h1>
+            <h1 class="text-2xl font-bold text-white">SLIPSTREAM</h1>
             <p class="text-sm text-gray-400 mt-1">TMS tenant</p>
         </div>
         

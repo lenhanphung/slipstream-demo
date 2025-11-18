@@ -35,6 +35,7 @@
             @save="handleSaveCustomer"
             @close="closeCustomerModal"
             @create-contact="openContactModal"
+            @save-and-create-contact="handleSaveAndCreateContact"
             @edit-contact="openContactModal"
             @delete-contact="handleDeleteContact"
         />
@@ -191,7 +192,7 @@ const showToast = (message, errors = {}, type = 'error') => {
     }, 5000);
 };
 
-const handleSaveCustomer = async (data) => {
+const handleSaveCustomer = async (data, shouldCreateContact = false) => {
     saving.value = true;
     customerErrors.value = {};
     try {
@@ -199,7 +200,9 @@ const handleSaveCustomer = async (data) => {
             await updateCustomer(selectedCustomer.value.id, data);
             showToast('Customer updated successfully', {}, 'success');
             await fetchCustomers(); // Refresh list to update contact count
-            closeCustomerModal();
+            if (!shouldCreateContact) {
+                closeCustomerModal();
+            }
         } else {
             // Creating new customer - don't close modal, allow adding contacts
             const newCustomer = await createCustomer(data);
@@ -207,9 +210,14 @@ const handleSaveCustomer = async (data) => {
             selectedCustomer.value = newCustomer; // Update selected customer
             await fetchContacts(newCustomer.id);
             await fetchCustomers(); // Refresh list to update contact count
-            showToast('Customer created successfully. You can now add contacts.', {}, 'success');
+            if (shouldCreateContact) {
+                showToast('Customer created successfully. You can now add contacts.', {}, 'success');
+            } else {
+                showToast('Customer created successfully. You can now add contacts.', {}, 'success');
+            }
             // Don't close modal - allow user to add contacts
         }
+        return true; // Return success
     } catch (error) {
         console.error('Error saving customer:', error);
         
@@ -222,8 +230,19 @@ const handleSaveCustomer = async (data) => {
         
         // Show toast
         showToast(errorMessage, errorDetails, 'error');
+        return false; // Return failure
     } finally {
         saving.value = false;
+    }
+};
+
+const handleSaveAndCreateContact = async (data) => {
+    // Save customer first
+    const success = await handleSaveCustomer(data, true);
+    if (success && currentCustomerId.value) {
+        // Customer saved successfully, now open contact modal
+        await fetchContacts(currentCustomerId.value);
+        openContactModal(currentCustomerId.value);
     }
 };
 

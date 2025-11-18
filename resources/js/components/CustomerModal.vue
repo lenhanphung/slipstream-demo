@@ -160,7 +160,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['save', 'close', 'create-contact', 'edit-contact', 'delete-contact']);
+const emit = defineEmits(['save', 'close', 'create-contact', 'edit-contact', 'delete-contact', 'save-and-create-contact']);
 
 const formData = ref({
     name: '',
@@ -220,42 +220,53 @@ watch(() => props.serverErrors, (newErrors) => {
 }, { immediate: true, deep: true });
 
 const handleSubmit = () => {
-    errors.value = {};
-    
-    if (!formData.value.name.trim()) {
-        errors.value.name = 'Name is required';
-        return;
+    if (validateForm()) {
+        emit('save', { ...formData.value });
     }
-    
-    if (!formData.value.reference.trim()) {
-        errors.value.reference = 'Reference is required';
-        return;
-    }
-    
-    if (!formData.value.customer_category_id) {
-        errors.value.customer_category_id = 'Category is required';
-        return;
-    }
-    
-    if (!formData.value.start_date) {
-        errors.value.start_date = 'Start Date is required';
-        return;
-    }
-    
-    emit('save', { ...formData.value });
 };
 
-const handleCreateContact = () => {
+const handleCreateContact = async () => {
     const customerId = props.customer?.id || formData.value.id;
     if (customerId) {
         emit('create-contact', customerId);
     } else {
-        // If creating new customer, customer must be saved first
-        errors.value = {
-            ...errors.value,
-            _general: 'Please save the customer first before adding contacts.'
-        };
+        // If creating new customer, validate and save first
+        if (validateForm()) {
+            // Emit special event to save customer first, then create contact
+            emit('save-and-create-contact', { ...formData.value });
+        } else {
+            errors.value = {
+                ...errors.value,
+                _general: 'Please fill in all required fields before adding contacts.'
+            };
+        }
     }
+};
+
+const validateForm = () => {
+    errors.value = {};
+    
+    if (!formData.value.name.trim()) {
+        errors.value.name = 'Name is required';
+        return false;
+    }
+    
+    if (!formData.value.reference.trim()) {
+        errors.value.reference = 'Reference is required';
+        return false;
+    }
+    
+    if (!formData.value.customer_category_id) {
+        errors.value.customer_category_id = 'Category is required';
+        return false;
+    }
+    
+    if (!formData.value.start_date) {
+        errors.value.start_date = 'Start Date is required';
+        return false;
+    }
+    
+    return true;
 };
 
 const handleEditContact = (contact) => {

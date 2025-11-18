@@ -338,6 +338,8 @@ const handleSaveContact = async (data) => {
                     customer_id: null,
                 };
                 showToast('Contact updated. Save customer to create all contacts.', {}, 'success');
+                // Trigger reactivity by reassigning array
+                pendingContacts.value = [...pendingContacts.value];
             }
         } else if (customerId) {
             // Creating new contact for existing customer - create via API
@@ -363,6 +365,8 @@ const handleSaveContact = async (data) => {
                 customer_id: null, // Will be set when customer is saved
             };
             pendingContacts.value.push(tempContact);
+            // Trigger reactivity by reassigning array
+            pendingContacts.value = [...pendingContacts.value];
             showToast('Contact added. Save customer to create all contacts.', {}, 'success');
         }
 
@@ -382,6 +386,8 @@ const handleDeletePendingContact = (contact) => {
     const index = pendingContacts.value.findIndex(c => c.id === contact.id);
     if (index > -1) {
         pendingContacts.value.splice(index, 1);
+        // Trigger reactivity by reassigning array
+        pendingContacts.value = [...pendingContacts.value];
     }
 };
 

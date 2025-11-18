@@ -103,7 +103,7 @@
                 <div class="border-t pt-4">
                     <ContactTable
                         :contacts="contacts"
-                        :customer-id="formData.id || 0"
+                        :customer-id="props.customer?.id || formData.id || 0"
                         :loading="loadingContacts"
                         @create="handleCreateContact"
                         @edit="handleEditContact"

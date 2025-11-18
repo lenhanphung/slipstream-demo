@@ -24,6 +24,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY docker/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+# Copy PHP-FPM override config
+COPY docker/php/php-fpm-override.conf /usr/local/etc/php-fpm.d/zz-docker.conf
+
 # Install MySQL client for healthcheck
 RUN apt-get update && apt-get install -y default-mysql-client && rm -rf /var/lib/apt/lists/*
 

@@ -43,21 +43,11 @@ This application provides a complete customer relationship management (CRM) syst
 
 ## 📦 Prerequisites
 
-### Option 1: Docker (Recommended)
 - Docker Desktop (v20.10+) or Docker Engine + Docker Compose (v2.0+)
-
-### Option 2: Manual Installation
-- PHP 8.2 or higher
-- Composer 2.x
-- Node.js 18+ and npm
-- MySQL 8.0+
-- Git
 
 ## 🚀 Installation
 
-### Option 1: Using Docker (Recommended - Easiest)
-
-This is the simplest way to get started. Everything is pre-configured and ready to run.
+Everything is pre-configured and ready to run with Docker.
 
 #### Step 1: Clone the Repository
 ```bash
@@ -139,77 +129,11 @@ docker-compose exec app composer [command]
 docker-compose exec node npm [command]
 ```
 
-### Option 2: Manual Installation
-
-For developers who prefer to run the application locally without Docker.
-
-#### Step 1: Clone the Repository
-```bash
-git clone git@github.com:lenhanphung/slipstream-demo.git
-cd slipstream-demo
-```
-
-#### Step 2: Install PHP Dependencies
-```bash
-composer install
-```
-
-#### Step 3: Install Node.js Dependencies
-```bash
-npm install
-```
-
-#### Step 4: Environment Configuration
-```bash
-cp .env.example .env
-php artisan key:generate
-```
-
-Edit `.env` file and configure database:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=slipstream_demo
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
-```
-
-#### Step 5: Database Setup
-Create MySQL database:
-```sql
-CREATE DATABASE slipstream_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Run migrations and seeders:
-```bash
-php artisan migrate --seed
-```
-
-#### Step 6: Build Frontend Assets
-
-**For development (with hot reload):**
-```bash
-npm run dev
-```
-
-**For production:**
-```bash
-npm run build
-```
-
-#### Step 7: Start Development Server
-```bash
-php artisan serve
-```
-
-The application will be available at `http://localhost:8000`
-
 ## 📖 Usage
 
 ### Accessing the Application
 
-- **URL**: `http://localhost` (Docker) or `http://localhost:8000` (Manual)
+- **URL**: `http://localhost`
 - The customer management page is set as the home page
 
 ### Features Guide
@@ -282,16 +206,12 @@ Content-Type: application/json
 
 ### Run Tests
 ```bash
-# Docker
 docker-compose exec app php artisan test
-
-# Manual
-php artisan test
 ```
 
 ### Run Tests with Coverage
 ```bash
-php artisan test --coverage
+docker-compose exec app php artisan test --coverage
 ```
 
 ## 📁 Project Structure
@@ -383,32 +303,28 @@ slipstream-demo/
 
 ```bash
 # Create new migration
-php artisan make:migration create_table_name
+docker-compose exec app php artisan make:migration create_table_name
 
 # Run migrations
-php artisan migrate
+docker-compose exec app php artisan migrate
 
 # Rollback last migration
-php artisan migrate:rollback
+docker-compose exec app php artisan migrate:rollback
 
 # Reset database (WARNING: deletes all data)
-php artisan migrate:fresh --seed
+docker-compose exec app php artisan migrate:fresh --seed
 ```
 
 ### Frontend Development
 
 **Development mode (hot reload):**
 ```bash
-# Docker
 docker-compose exec node npm run dev
-
-# Manual
-npm run dev
 ```
 
 **Production build:**
 ```bash
-npm run build
+docker-compose exec node npm run build
 ```
 
 ## 🐛 Troubleshooting

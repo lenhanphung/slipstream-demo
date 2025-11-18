@@ -38,12 +38,13 @@ wait_for_mysql() {
     return 1
 }
 
-# Check if Laravel is installed (vendor directory exists)
+# Check if Laravel dependencies are installed (vendor directory exists)
 if [ ! -d "vendor" ]; then
-    echo "Laravel not installed. Please install Laravel first."
-    echo "Run: composer create-project laravel/laravel:^11.0 ."
-    # Start PHP-FPM anyway
-    exec php-fpm
+    echo "Vendor directory not found. Installing dependencies..."
+    composer install --no-interaction --prefer-dist --optimize-autoloader || {
+        echo "Failed to install dependencies"
+        exec php-fpm -F
+    }
 fi
 
 # Generate application key if not exists

@@ -47,6 +47,13 @@ sed -i "s/# DB_PASSWORD=/DB_PASSWORD=/" .env
 # Update session driver to database
 sed -i "s/SESSION_DRIVER=.*/SESSION_DRIVER=database/" .env
 
+# Set Vite dev server URL for Docker environment
+if ! grep -q "VITE_DEV_SERVER_URL=" .env 2>/dev/null; then
+    echo "VITE_DEV_SERVER_URL=http://localhost:5173" >> .env
+else
+    sed -i "s|VITE_DEV_SERVER_URL=.*|VITE_DEV_SERVER_URL=http://localhost:5173|" .env
+fi
+
 # Check if APP_KEY is set
 if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
     echo "Generating application key..."

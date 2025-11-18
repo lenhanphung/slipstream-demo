@@ -9,21 +9,21 @@
                         Create
                     </BaseButton>
                 </div>
-        
+
         <SearchBar
             :categories="categories"
             @search="handleSearch"
             @filter="handleFilter"
             @clear="handleClear"
         />
-        
+
         <CustomerTable
             :customers="customers"
             :loading="loading"
             @edit="openCustomerModal"
             @delete="handleDeleteCustomer"
         />
-        
+
         <CustomerModal
             :visible="customerModalVisible"
             :customer="selectedCustomer"
@@ -38,7 +38,7 @@
             @edit-contact="openContactModal"
             @delete-contact="handleDeleteContact"
         />
-        
+
         <ContactModal
             :visible="contactModalVisible"
             :contact="selectedContact"
@@ -47,7 +47,7 @@
             @save="handleSaveContact"
             @close="closeContactModal"
         />
-        
+
         <ConfirmDialog
             :visible="confirmDialogVisible"
             :title="confirmDialogTitle"
@@ -55,7 +55,7 @@
             @confirm="confirmAction"
             @cancel="cancelAction"
         />
-        
+
         <Toast
             :visible="toastVisible"
             :message="toastMessage"
@@ -198,15 +198,18 @@ const handleSaveCustomer = async (data) => {
         if (selectedCustomer.value) {
             await updateCustomer(selectedCustomer.value.id, data);
             showToast('Customer updated successfully', {}, 'success');
+            await fetchCustomers(); // Refresh list to update contact count
+            closeCustomerModal();
         } else {
+            // Creating new customer - don't close modal, allow adding contacts
             const newCustomer = await createCustomer(data);
             currentCustomerId.value = newCustomer.id;
             selectedCustomer.value = newCustomer; // Update selected customer
             await fetchContacts(newCustomer.id);
-            showToast('Customer created successfully', {}, 'success');
+            await fetchCustomers(); // Refresh list to update contact count
+            showToast('Customer created successfully. You can now add contacts.', {}, 'success');
+            // Don't close modal - allow user to add contacts
         }
-        await fetchCustomers(); // Refresh list to update contact count
-        closeCustomerModal();
     } catch (error) {
         console.error('Error saving customer:', error);
         
@@ -272,7 +275,7 @@ const handleSaveContact = async (data) => {
         if (!data.customer_id && currentCustomerId.value) {
             data.customer_id = currentCustomerId.value;
         }
-        
+
         if (selectedContact.value) {
             await updateContact(selectedContact.value.id, data);
             showToast('Contact updated successfully', {}, 'success');
@@ -280,7 +283,7 @@ const handleSaveContact = async (data) => {
             await createContact(data);
             showToast('Contact created successfully', {}, 'success');
         }
-        
+
         // Refresh contacts list
         if (selectedCustomer.value) {
             loadingContacts.value = true;
@@ -292,7 +295,7 @@ const handleSaveContact = async (data) => {
                 loadingContacts.value = false;
             }
         }
-        
+
         closeContactModal();
     } catch (error) {
         console.error('Error saving contact:', error);

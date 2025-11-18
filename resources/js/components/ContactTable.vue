@@ -2,7 +2,11 @@
     <div class="mt-4">
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-lg font-semibold">Contacts</h3>
-            <BaseButton variant="primary" @click="$emit('create')">
+            <BaseButton 
+                variant="primary" 
+                :disabled="!customerId || customerId === 0"
+                @click="$emit('create')"
+            >
                 Create
             </BaseButton>
         </div>

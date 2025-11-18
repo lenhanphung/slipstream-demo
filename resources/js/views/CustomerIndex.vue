@@ -31,6 +31,7 @@
             :contacts="customerContacts"
             :loading="saving"
             :loading-contacts="loadingContacts"
+            :server-errors="customerErrors"
             @save="handleSaveCustomer"
             @close="closeCustomerModal"
             @create-contact="openContactModal"
@@ -54,6 +55,14 @@
             @confirm="confirmAction"
             @cancel="cancelAction"
         />
+        
+        <Toast
+            :visible="toastVisible"
+            :message="toastMessage"
+            :errors="toastErrors"
+            :type="toastType"
+            @close="toastVisible = false"
+        />
             </div>
         </div>
     </div>
@@ -72,6 +81,7 @@ import CustomerTable from '@/components/CustomerTable.vue';
 import CustomerModal from '@/components/CustomerModal.vue';
 import ContactModal from '@/components/ContactModal.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import Toast from '@/components/Toast.vue';
 
 const {
     customers,
@@ -101,6 +111,11 @@ const currentCustomerId = ref(null);
 const saving = ref(false);
 const savingContact = ref(false);
 const loadingContacts = ref(false);
+const customerErrors = ref({});
+const toastVisible = ref(false);
+const toastMessage = ref('');
+const toastErrors = ref({});
+const toastType = ref('error');
 
 const searchQuery = ref('');
 const categoryFilter = ref(null);
@@ -143,6 +158,7 @@ const handleClear = () => {
 
 const openCustomerModal = async (customer) => {
     selectedCustomer.value = customer;
+    customerErrors.value = {}; // Clear errors when opening modal
     if (customer) {
         loadingContacts.value = true;
         try {
@@ -165,19 +181,44 @@ const closeCustomerModal = () => {
     currentCustomerId.value = null;
 };
 
+const showToast = (message, errors = {}, type = 'error') => {
+    toastMessage.value = message;
+    toastErrors.value = errors;
+    toastType.value = type;
+    toastVisible.value = true;
+    setTimeout(() => {
+        toastVisible.value = false;
+    }, 5000);
+};
+
 const handleSaveCustomer = async (data) => {
     saving.value = true;
+    customerErrors.value = {};
     try {
         if (selectedCustomer.value) {
             await updateCustomer(selectedCustomer.value.id, data);
+            showToast('Customer updated successfully', {}, 'success');
         } else {
             const newCustomer = await createCustomer(data);
             currentCustomerId.value = newCustomer.id;
+            selectedCustomer.value = newCustomer; // Update selected customer
             await fetchContacts(newCustomer.id);
+            showToast('Customer created successfully', {}, 'success');
         }
+        await fetchCustomers(); // Refresh list to update contact count
         closeCustomerModal();
     } catch (error) {
         console.error('Error saving customer:', error);
+        
+        // Extract error message and errors
+        const errorMessage = error.message || 'An error occurred while saving the customer';
+        const errorDetails = error.errors || {};
+        
+        // Set errors for modal display
+        customerErrors.value = errorDetails;
+        
+        // Show toast
+        showToast(errorMessage, errorDetails, 'error');
     } finally {
         saving.value = false;
     }
@@ -189,9 +230,13 @@ const handleDeleteCustomer = (customer) => {
     pendingAction.value = async () => {
         try {
             await removeCustomer(customer.id);
+            showToast('Customer deleted successfully', {}, 'success');
+            await fetchCustomers();
             closeConfirmDialog();
         } catch (error) {
             console.error('Error deleting customer:', error);
+            const errorMessage = error.message || 'An error occurred while deleting the customer';
+            showToast(errorMessage, {}, 'error');
         }
     };
     openConfirmDialog();
@@ -230,8 +275,10 @@ const handleSaveContact = async (data) => {
         
         if (selectedContact.value) {
             await updateContact(selectedContact.value.id, data);
+            showToast('Contact updated successfully', {}, 'success');
         } else {
             await createContact(data);
+            showToast('Contact created successfully', {}, 'success');
         }
         
         // Refresh contacts list
@@ -249,6 +296,9 @@ const handleSaveContact = async (data) => {
         closeContactModal();
     } catch (error) {
         console.error('Error saving contact:', error);
+        const errorMessage = error.message || 'An error occurred while saving the contact';
+        const errorDetails = error.errors || {};
+        showToast(errorMessage, errorDetails, 'error');
         throw error;
     } finally {
         savingContact.value = false;
@@ -261,12 +311,16 @@ const handleDeleteContact = (contact) => {
     pendingAction.value = async () => {
         try {
             await removeContact(contact.id, contact.customer_id);
+            showToast('Contact deleted successfully', {}, 'success');
             closeConfirmDialog();
             if (selectedCustomer.value) {
                 await fetchContacts(selectedCustomer.value.id);
+                await fetchCustomers(); // Refresh to update contact count
             }
         } catch (error) {
             console.error('Error deleting contact:', error);
+            const errorMessage = error.message || 'An error occurred while deleting the contact';
+            showToast(errorMessage, {}, 'error');
         }
     };
     openConfirmDialog();

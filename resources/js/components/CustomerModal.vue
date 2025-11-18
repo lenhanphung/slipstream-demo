@@ -10,6 +10,9 @@
             </h2>
             
             <form @submit.prevent="handleSubmit">
+                <div v-if="errors._general" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p class="text-sm text-red-800">{{ errors._general }}</p>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div class="space-y-4">
                         <h3 class="text-lg font-medium text-gray-900">General</h3>
@@ -39,7 +42,9 @@
                                 required
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
-                            <p v-if="errors.reference" class="mt-1 text-sm text-red-600">{{ errors.reference }}</p>
+                            <p v-if="errors.reference" class="mt-1 text-sm text-red-600">
+                                {{ typeof errors.reference === 'string' ? errors.reference : errors.reference[0] }}
+                            </p>
                         </div>
                         
                         <div>
@@ -149,6 +154,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    serverErrors: {
+        type: Object,
+        default: () => ({}),
+    },
 });
 
 const emit = defineEmits(['save', 'close', 'create-contact', 'edit-contact', 'delete-contact']);
@@ -187,6 +196,22 @@ watch(() => props.visible, (newVal) => {
     }
 });
 
+watch(() => props.serverErrors, (newErrors) => {
+    if (newErrors && Object.keys(newErrors).length > 0) {
+        // Convert server errors format to display format
+        const formattedErrors = {};
+        Object.keys(newErrors).forEach(key => {
+            const errorValue = newErrors[key];
+            if (Array.isArray(errorValue)) {
+                formattedErrors[key] = errorValue[0]; // Take first error message
+            } else {
+                formattedErrors[key] = errorValue;
+            }
+        });
+        errors.value = formattedErrors;
+    }
+}, { immediate: true, deep: true });
+
 const handleSubmit = () => {
     errors.value = {};
     
@@ -216,6 +241,12 @@ const handleSubmit = () => {
 const handleCreateContact = () => {
     if (props.customer?.id) {
         emit('create-contact', props.customer.id);
+    } else {
+        // If creating new customer, customer must be saved first
+        errors.value = {
+            ...errors.value,
+            _general: 'Please save the customer first before adding contacts.'
+        };
     }
 };
 

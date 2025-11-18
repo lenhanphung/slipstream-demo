@@ -83,9 +83,16 @@ docker-compose logs -f app
 
 You should see messages like:
 - "Vendor directory not found. Installing dependencies..." (first time only)
+- "Waiting for MySQL to be ready..."
+- "MySQL is ready!"
 - "Running migrations..."
 - "Running seeders..."
 - "Application is ready! Marking setup as complete..."
+
+**Note:** If you see "MySQL connection timeout" or "Skipping migrations - MySQL not available", wait a few more seconds and then run migrations manually:
+```bash
+docker-compose exec app php artisan migrate --seed --force
+```
 
 #### Step 4: Access the Application
 
@@ -95,6 +102,11 @@ http://localhost
 ```
 
 The application is now ready to use! 🎉
+
+**If migrations didn't run automatically**, execute:
+```bash
+docker-compose exec app php artisan migrate --seed --force
+```
 
 #### Additional Docker Commands
 
@@ -358,7 +370,13 @@ docker-compose up -d
 **Connection refused:**
 - Check MySQL container is running: `docker-compose ps`
 - Verify database credentials in `.env`
-- Wait for MySQL health check to complete
+- Wait for MySQL health check to complete (may take 30-60 seconds on first start)
+
+**Migrations didn't run automatically:**
+If you see "Skipping migrations - MySQL not available" in logs, MySQL may need more time to start. Run migrations manually:
+```bash
+docker-compose exec app php artisan migrate --seed --force
+```
 
 **Migration errors:**
 ```bash

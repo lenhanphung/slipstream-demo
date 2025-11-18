@@ -26,15 +26,16 @@ trap "rm -f $LOCK_FILE" EXIT
 # Function to wait for MySQL
 wait_for_mysql() {
     echo "Waiting for MySQL to be ready..."
-    for i in 1 2 3 4 5 6 7 8 9 10; do
+    max_attempts=40
+    for i in $(seq 1 $max_attempts); do
         if mysql -h mysql -u root -psecret -e "SELECT 1" > /dev/null 2>&1; then
             echo "MySQL is ready!"
             return 0
         fi
-        echo "MySQL is unavailable - sleeping ($i/10)"
+        echo "MySQL is unavailable - sleeping ($i/$max_attempts)"
         sleep 2
     done
-    echo "MySQL connection timeout, but continuing..."
+    echo "MySQL connection timeout after $max_attempts attempts, but continuing..."
     return 1
 }
 

@@ -48,5 +48,6 @@ php artisan view:clear || true
 
 echo "Application is ready!"
 
-exec "$@"
+# Start PHP-FPM in foreground
+exec php-fpm
 

@@ -69,7 +69,7 @@ const props = defineProps({
     },
     customerId: {
         type: Number,
-        required: true,
+        default: null,
     },
     loading: {
         type: Boolean,
@@ -82,7 +82,7 @@ const emit = defineEmits(['save', 'close']);
 const formData = ref({
     first_name: '',
     last_name: '',
-    customer_id: props.customerId,
+    customer_id: props.customerId || null,
 });
 
 const errors = ref({});
@@ -107,7 +107,9 @@ watch(() => props.visible, (newVal) => {
 });
 
 watch(() => props.customerId, (newVal) => {
-    formData.value.customer_id = newVal;
+    if (newVal) {
+        formData.value.customer_id = newVal;
+    }
 });
 
 const handleSubmit = () => {
@@ -118,10 +120,10 @@ const handleSubmit = () => {
         return;
     }
     
-    // Ensure customer_id is always included
+    // Ensure customer_id is included if available
     const data = {
         ...formData.value,
-        customer_id: formData.value.customer_id || props.customerId,
+        customer_id: formData.value.customer_id || props.customerId || null,
     };
     
     emit('save', data);

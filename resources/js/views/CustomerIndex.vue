@@ -272,10 +272,19 @@ const handleDeleteCustomer = (customer) => {
 const openContactModal = (contactOrCustomerId) => {
     if (typeof contactOrCustomerId === 'number') {
         selectedContact.value = null;
-        currentCustomerId.value = contactOrCustomerId;
+        currentCustomerId.value = contactOrCustomerId || null;
+    } else if (contactOrCustomerId && contactOrCustomerId.id) {
+        // Check if it's a pending contact
+        if (String(contactOrCustomerId.id).startsWith('pending-')) {
+            selectedContact.value = contactOrCustomerId;
+            currentCustomerId.value = null; // No customer ID yet
+        } else {
+            selectedContact.value = contactOrCustomerId;
+            currentCustomerId.value = contactOrCustomerId.customer_id;
+        }
     } else {
-        selectedContact.value = contactOrCustomerId;
-        currentCustomerId.value = contactOrCustomerId.customer_id;
+        selectedContact.value = null;
+        currentCustomerId.value = null;
     }
     openContactModalBase();
 };
@@ -302,8 +311,9 @@ const handleSaveContact = async (data) => {
 
         // Check if customer exists (already saved)
         const customerId = selectedCustomer.value?.id || currentCustomerId.value;
+        const isPendingContact = selectedContact.value && selectedContact.value.id && String(selectedContact.value.id).startsWith('pending-');
         
-        if (selectedContact.value && selectedContact.value.id) {
+        if (selectedContact.value && selectedContact.value.id && !isPendingContact) {
             // Editing existing contact - update via API
             await updateContact(selectedContact.value.id, data);
             showToast('Contact updated successfully', {}, 'success');
@@ -317,6 +327,17 @@ const handleSaveContact = async (data) => {
                 } finally {
                     loadingContacts.value = false;
                 }
+            }
+        } else if (isPendingContact) {
+            // Editing pending contact - update in pendingContacts array
+            const index = pendingContacts.value.findIndex(c => c.id === selectedContact.value.id);
+            if (index > -1) {
+                pendingContacts.value[index] = {
+                    ...data,
+                    id: selectedContact.value.id, // Keep the same temp ID
+                    customer_id: null,
+                };
+                showToast('Contact updated. Save customer to create all contacts.', {}, 'success');
             }
         } else if (customerId) {
             // Creating new contact for existing customer - create via API

@@ -1,9 +1,15 @@
 import './bootstrap';
+import '../css/app.css';
 import { createApp } from 'vue';
+import CustomerIndex from './views/CustomerIndex.vue';
 
-// Vue app initialization will be added when components are created
-// For now, this file is ready for Vue 3 setup
+const app = createApp({});
+
+app.component('CustomerIndex', CustomerIndex);
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Vue app will be mounted here when components are ready
+    const element = document.getElementById('app');
+    if (element) {
+        app.mount('#app');
+    }
 });

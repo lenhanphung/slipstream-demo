@@ -196,6 +196,13 @@ watch(() => props.visible, (newVal) => {
     }
 });
 
+watch(() => props.customer, (newCustomer) => {
+    if (newCustomer && newCustomer.id && !formData.value.id) {
+        // Update formData when customer is set (e.g., after creating new customer)
+        formData.value.id = newCustomer.id;
+    }
+}, { deep: true });
+
 watch(() => props.serverErrors, (newErrors) => {
     if (newErrors && Object.keys(newErrors).length > 0) {
         // Convert server errors format to display format
@@ -239,8 +246,9 @@ const handleSubmit = () => {
 };
 
 const handleCreateContact = () => {
-    if (props.customer?.id) {
-        emit('create-contact', props.customer.id);
+    const customerId = props.customer?.id || formData.value.id;
+    if (customerId) {
+        emit('create-contact', customerId);
     } else {
         // If creating new customer, customer must be saved first
         errors.value = {

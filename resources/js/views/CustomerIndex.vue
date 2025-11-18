@@ -29,15 +29,16 @@
             :customer="selectedCustomer"
             :categories="categories"
             :contacts="customerContacts"
+            :pending-contacts="pendingContacts"
             :loading="saving"
             :loading-contacts="loadingContacts"
             :server-errors="customerErrors"
             @save="handleSaveCustomer"
             @close="closeCustomerModal"
             @create-contact="openContactModal"
-            @save-and-create-contact="handleSaveAndCreateContact"
             @edit-contact="openContactModal"
             @delete-contact="handleDeleteContact"
+            @delete-pending-contact="handleDeletePendingContact"
         />
 
         <ContactModal
@@ -117,6 +118,7 @@ const toastVisible = ref(false);
 const toastMessage = ref('');
 const toastErrors = ref({});
 const toastType = ref('error');
+const pendingContacts = ref([]); // Contacts created but customer not saved yet
 
 const searchQuery = ref('');
 const categoryFilter = ref(null);
@@ -160,6 +162,7 @@ const handleClear = () => {
 const openCustomerModal = async (customer) => {
     selectedCustomer.value = customer;
     customerErrors.value = {}; // Clear errors when opening modal
+    pendingContacts.value = []; // Clear pending contacts when opening modal
     if (customer) {
         loadingContacts.value = true;
         try {
@@ -180,6 +183,7 @@ const closeCustomerModal = () => {
     selectedCustomer.value = null;
     customerContacts.value = [];
     currentCustomerId.value = null;
+    pendingContacts.value = []; // Clear pending contacts when closing modal
 };
 
 const showToast = (message, errors = {}, type = 'error') => {
@@ -192,7 +196,7 @@ const showToast = (message, errors = {}, type = 'error') => {
     }, 5000);
 };
 
-const handleSaveCustomer = async (data, shouldCreateContact = false) => {
+const handleSaveCustomer = async (data) => {
     saving.value = true;
     customerErrors.value = {};
     try {
@@ -200,24 +204,36 @@ const handleSaveCustomer = async (data, shouldCreateContact = false) => {
             await updateCustomer(selectedCustomer.value.id, data);
             showToast('Customer updated successfully', {}, 'success');
             await fetchCustomers(); // Refresh list to update contact count
-            if (!shouldCreateContact) {
-                closeCustomerModal();
-            }
+            closeCustomerModal();
         } else {
-            // Creating new customer - don't close modal, allow adding contacts
+            // Creating new customer - save first, then create pending contacts
             const newCustomer = await createCustomer(data);
             currentCustomerId.value = newCustomer.id;
             selectedCustomer.value = newCustomer; // Update selected customer
+            
+            // Create all pending contacts with the new customer ID
+            if (pendingContacts.value.length > 0) {
+                try {
+                    for (const contactData of pendingContacts.value) {
+                        await createContact({
+                            ...contactData,
+                            customer_id: newCustomer.id,
+                        });
+                    }
+                    showToast(`Customer and ${pendingContacts.value.length} contact(s) created successfully`, {}, 'success');
+                    pendingContacts.value = []; // Clear pending contacts
+                } catch (error) {
+                    console.error('Error creating pending contacts:', error);
+                    showToast('Customer created but some contacts failed to create', {}, 'error');
+                }
+            } else {
+                showToast('Customer created successfully', {}, 'success');
+            }
+            
             await fetchContacts(newCustomer.id);
             await fetchCustomers(); // Refresh list to update contact count
-            if (shouldCreateContact) {
-                showToast('Customer created successfully. You can now add contacts.', {}, 'success');
-            } else {
-                showToast('Customer created successfully. You can now add contacts.', {}, 'success');
-            }
-            // Don't close modal - allow user to add contacts
+            // Don't close modal - allow user to add more contacts
         }
-        return true; // Return success
     } catch (error) {
         console.error('Error saving customer:', error);
         
@@ -230,19 +246,8 @@ const handleSaveCustomer = async (data, shouldCreateContact = false) => {
         
         // Show toast
         showToast(errorMessage, errorDetails, 'error');
-        return false; // Return failure
     } finally {
         saving.value = false;
-    }
-};
-
-const handleSaveAndCreateContact = async (data) => {
-    // Save customer first
-    const success = await handleSaveCustomer(data, true);
-    if (success && currentCustomerId.value) {
-        // Customer saved successfully, now open contact modal
-        await fetchContacts(currentCustomerId.value);
-        openContactModal(currentCustomerId.value);
     }
 };
 
@@ -295,24 +300,49 @@ const handleSaveContact = async (data) => {
             data.customer_id = currentCustomerId.value;
         }
 
-        if (selectedContact.value) {
+        // Check if customer exists (already saved)
+        const customerId = selectedCustomer.value?.id || currentCustomerId.value;
+        
+        if (selectedContact.value && selectedContact.value.id) {
+            // Editing existing contact - update via API
             await updateContact(selectedContact.value.id, data);
             showToast('Contact updated successfully', {}, 'success');
-        } else {
+            
+            // Refresh contacts list
+            if (selectedCustomer.value) {
+                loadingContacts.value = true;
+                try {
+                    await fetchContacts(selectedCustomer.value.id);
+                    await fetchCustomers(); // Refresh to update contact count
+                } finally {
+                    loadingContacts.value = false;
+                }
+            }
+        } else if (customerId) {
+            // Creating new contact for existing customer - create via API
             await createContact(data);
             showToast('Contact created successfully', {}, 'success');
-        }
-
-        // Refresh contacts list
-        if (selectedCustomer.value) {
-            loadingContacts.value = true;
-            try {
-                await fetchContacts(selectedCustomer.value.id);
-                // Refresh customers list to update contact count
-                await fetchCustomers();
-            } finally {
-                loadingContacts.value = false;
+            
+            // Refresh contacts list
+            if (selectedCustomer.value) {
+                loadingContacts.value = true;
+                try {
+                    await fetchContacts(selectedCustomer.value.id);
+                    await fetchCustomers(); // Refresh to update contact count
+                } finally {
+                    loadingContacts.value = false;
+                }
             }
+        } else {
+            // Creating new contact for new customer (not saved yet) - add to pending contacts
+            // Generate a temporary ID for display
+            const tempContact = {
+                ...data,
+                id: `pending-${Date.now()}-${Math.random()}`,
+                customer_id: null, // Will be set when customer is saved
+            };
+            pendingContacts.value.push(tempContact);
+            showToast('Contact added. Save customer to create all contacts.', {}, 'success');
         }
 
         closeContactModal();
@@ -324,6 +354,13 @@ const handleSaveContact = async (data) => {
         throw error;
     } finally {
         savingContact.value = false;
+    }
+};
+
+const handleDeletePendingContact = (contact) => {
+    const index = pendingContacts.value.findIndex(c => c.id === contact.id);
+    if (index > -1) {
+        pendingContacts.value.splice(index, 1);
     }
 };
 

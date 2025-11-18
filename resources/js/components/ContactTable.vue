@@ -4,7 +4,6 @@
             <h3 class="text-lg font-semibold">Contacts</h3>
             <BaseButton 
                 variant="primary" 
-                :disabled="!customerId || customerId === 0"
                 @click="$emit('create')"
             >
                 Create
@@ -29,9 +28,14 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="contact in contacts" :key="contact.id">
+                    <tr 
+                        v-for="contact in contacts" 
+                        :key="contact.id"
+                        :class="{ 'bg-yellow-50': isPendingContact(contact) }"
+                    >
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {{ contact.first_name }}
+                            <span v-if="isPendingContact(contact)" class="ml-2 text-xs text-yellow-600">(Pending)</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {{ contact.last_name }}
@@ -44,7 +48,7 @@
                                 Edit
                             </button>
                             <button
-                                @click="$emit('delete', contact)"
+                                @click="handleDelete(contact)"
                                 class="text-red-600 hover:text-red-900"
                             >
                                 Delete
@@ -63,9 +67,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import BaseButton from './BaseButton.vue';
 
-defineProps({
+const props = defineProps({
     contacts: {
         type: Array,
         required: true,
@@ -80,6 +85,18 @@ defineProps({
     },
 });
 
-defineEmits(['edit', 'delete', 'create']);
+const emit = defineEmits(['edit', 'delete', 'delete-pending', 'create']);
+
+const isPendingContact = (contact) => {
+    return contact.id && String(contact.id).startsWith('pending-');
+};
+
+const handleDelete = (contact) => {
+    if (isPendingContact(contact)) {
+        emit('delete-pending', contact);
+    } else {
+        emit('delete', contact);
+    }
+};
 </script>
 

@@ -102,12 +102,13 @@
                 
                 <div class="border-t pt-4">
                     <ContactTable
-                        :contacts="contacts"
+                        :contacts="allContacts"
                         :customer-id="props.customer?.id || formData.id || 0"
                         :loading="loadingContacts"
                         @create="handleCreateContact"
                         @edit="handleEditContact"
                         @delete="handleDeleteContact"
+                        @delete-pending="handleDeletePendingContact"
                     />
                 </div>
                 
@@ -146,6 +147,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    pendingContacts: {
+        type: Array,
+        default: () => [],
+    },
     loading: {
         type: Boolean,
         default: false,
@@ -160,7 +165,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['save', 'close', 'create-contact', 'edit-contact', 'delete-contact', 'save-and-create-contact']);
+const emit = defineEmits(['save', 'close', 'create-contact', 'edit-contact', 'delete-contact', 'delete-pending-contact']);
 
 const formData = ref({
     name: '',
@@ -171,6 +176,11 @@ const formData = ref({
 });
 
 const errors = ref({});
+
+// Combine real contacts and pending contacts for display
+const allContacts = computed(() => {
+    return [...props.contacts, ...props.pendingContacts];
+});
 
 watch(() => props.visible, (newVal) => {
     if (newVal) {
@@ -225,22 +235,10 @@ const handleSubmit = () => {
     }
 };
 
-const handleCreateContact = async () => {
+const handleCreateContact = () => {
+    // Always allow creating contact - if customer not saved, it will be added to pendingContacts
     const customerId = props.customer?.id || formData.value.id;
-    if (customerId) {
-        emit('create-contact', customerId);
-    } else {
-        // If creating new customer, validate and save first
-        if (validateForm()) {
-            // Emit special event to save customer first, then create contact
-            emit('save-and-create-contact', { ...formData.value });
-        } else {
-            errors.value = {
-                ...errors.value,
-                _general: 'Please fill in all required fields before adding contacts.'
-            };
-        }
-    }
+    emit('create-contact', customerId || 0); // Pass 0 if customer not saved yet
 };
 
 const validateForm = () => {
@@ -274,7 +272,12 @@ const handleEditContact = (contact) => {
 };
 
 const handleDeleteContact = (contact) => {
-    emit('delete-contact', contact);
+    // Check if it's a pending contact (has temp ID starting with 'pending-')
+    if (contact.id && String(contact.id).startsWith('pending-')) {
+        emit('delete-pending-contact', contact);
+    } else {
+        emit('delete-contact', contact);
+    }
 };
 </script>
 

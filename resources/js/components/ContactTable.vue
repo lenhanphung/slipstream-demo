@@ -42,12 +42,14 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button
+                                type="button"
                                 @click="$emit('edit', contact)"
                                 class="text-blue-600 hover:text-blue-900 mr-3"
                             >
                                 Edit
                             </button>
                             <button
+                                type="button"
                                 @click="handleDelete(contact)"
                                 class="text-red-600 hover:text-red-900"
                             >

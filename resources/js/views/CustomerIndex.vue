@@ -210,7 +210,7 @@ const handleSaveCustomer = async (data) => {
             const newCustomer = await createCustomer(data);
             currentCustomerId.value = newCustomer.id;
             selectedCustomer.value = newCustomer; // Update selected customer
-            
+
             // Create all pending contacts with the new customer ID
             if (pendingContacts.value.length > 0) {
                 try {
@@ -229,21 +229,21 @@ const handleSaveCustomer = async (data) => {
             } else {
                 showToast('Customer created successfully', {}, 'success');
             }
-            
+
             await fetchContacts(newCustomer.id);
             await fetchCustomers(); // Refresh list to update contact count
             // Don't close modal - allow user to add more contacts
         }
     } catch (error) {
         console.error('Error saving customer:', error);
-        
+
         // Extract error message and errors
         const errorMessage = error.message || 'An error occurred while saving the customer';
         const errorDetails = error.errors || {};
-        
+
         // Set errors for modal display
         customerErrors.value = errorDetails;
-        
+
         // Show toast
         showToast(errorMessage, errorDetails, 'error');
     } finally {
@@ -312,12 +312,12 @@ const handleSaveContact = async (data) => {
         // Check if customer exists (already saved)
         const customerId = selectedCustomer.value?.id || currentCustomerId.value;
         const isPendingContact = selectedContact.value && selectedContact.value.id && String(selectedContact.value.id).startsWith('pending-');
-        
+
         if (selectedContact.value && selectedContact.value.id && !isPendingContact) {
             // Editing existing contact - update via API
             await updateContact(selectedContact.value.id, data);
             showToast('Contact updated successfully', {}, 'success');
-            
+
             // Refresh contacts list
             if (selectedCustomer.value) {
                 loadingContacts.value = true;
@@ -345,7 +345,7 @@ const handleSaveContact = async (data) => {
             // Creating new contact for existing customer - create via API
             await createContact(data);
             showToast('Contact created successfully', {}, 'success');
-            
+
             // Refresh contacts list
             if (selectedCustomer.value) {
                 loadingContacts.value = true;

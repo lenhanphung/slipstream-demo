@@ -1,11 +1,14 @@
 <template>
-    <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Customers</h1>
-            <BaseButton variant="primary" @click="openCustomerModal(null)">
-                Create
-            </BaseButton>
-        </div>
+    <div class="flex">
+        <Sidebar />
+        <div class="flex-1 ml-64">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-900">Customers</h1>
+                    <BaseButton variant="primary" @click="openCustomerModal(null)">
+                        Create
+                    </BaseButton>
+                </div>
         
         <SearchBar
             :categories="categories"
@@ -27,6 +30,7 @@
             :categories="categories"
             :contacts="customerContacts"
             :loading="saving"
+            :loading-contacts="loadingContacts"
             @save="handleSaveCustomer"
             @close="closeCustomerModal"
             @create-contact="openContactModal"
@@ -50,6 +54,8 @@
             @confirm="confirmAction"
             @cancel="cancelAction"
         />
+            </div>
+        </div>
     </div>
 </template>
 
@@ -60,6 +66,7 @@ import { useContacts } from '@/composables/useContacts';
 import { useModal } from '@/composables/useModal';
 import api from '@/services/api';
 import BaseButton from '@/components/BaseButton.vue';
+import Sidebar from '@/components/Sidebar.vue';
 import SearchBar from '@/components/SearchBar.vue';
 import CustomerTable from '@/components/CustomerTable.vue';
 import CustomerModal from '@/components/CustomerModal.vue';
@@ -93,6 +100,7 @@ const selectedContact = ref(null);
 const currentCustomerId = ref(null);
 const saving = ref(false);
 const savingContact = ref(false);
+const loadingContacts = ref(false);
 
 const searchQuery = ref('');
 const categoryFilter = ref(null);
@@ -133,11 +141,16 @@ const handleClear = () => {
     fetchCustomers();
 };
 
-const openCustomerModal = (customer) => {
+const openCustomerModal = async (customer) => {
     selectedCustomer.value = customer;
     if (customer) {
-        fetchContacts(customer.id);
-        currentCustomerId.value = customer.id;
+        loadingContacts.value = true;
+        try {
+            await fetchContacts(customer.id);
+            currentCustomerId.value = customer.id;
+        } finally {
+            loadingContacts.value = false;
+        }
     } else {
         customerContacts.value = [];
         currentCustomerId.value = null;
@@ -198,25 +211,45 @@ const openContactModal = (contactOrCustomerId) => {
 const closeContactModal = () => {
     closeContactModalBase();
     selectedContact.value = null;
+    // Don't close customer modal, just refresh contacts
     if (selectedCustomer.value) {
-        fetchContacts(selectedCustomer.value.id);
+        loadingContacts.value = true;
+        fetchContacts(selectedCustomer.value.id).finally(() => {
+            loadingContacts.value = false;
+        });
     }
 };
 
 const handleSaveContact = async (data) => {
     savingContact.value = true;
     try {
+        // Ensure customer_id is included
+        if (!data.customer_id && currentCustomerId.value) {
+            data.customer_id = currentCustomerId.value;
+        }
+        
         if (selectedContact.value) {
             await updateContact(selectedContact.value.id, data);
         } else {
             await createContact(data);
         }
-        closeContactModal();
+        
+        // Refresh contacts list
         if (selectedCustomer.value) {
-            await fetchContacts(selectedCustomer.value.id);
+            loadingContacts.value = true;
+            try {
+                await fetchContacts(selectedCustomer.value.id);
+                // Refresh customers list to update contact count
+                await fetchCustomers();
+            } finally {
+                loadingContacts.value = false;
+            }
         }
+        
+        closeContactModal();
     } catch (error) {
         console.error('Error saving contact:', error);
+        throw error;
     } finally {
         savingContact.value = false;
     }

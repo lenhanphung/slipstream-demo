@@ -6,8 +6,11 @@
                 Create
             </BaseButton>
         </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+        <div class="overflow-x-auto relative min-h-[200px]">
+            <div v-if="loading" class="absolute inset-0 flex items-center justify-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+            <table v-else class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -44,7 +47,7 @@
                             </button>
                         </td>
                     </tr>
-                    <tr v-if="contacts.length === 0">
+                    <tr v-if="contacts.length === 0 && !loading">
                         <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
                             No contacts found
                         </td>
@@ -66,6 +69,10 @@ defineProps({
     customerId: {
         type: Number,
         required: true,
+    },
+    loading: {
+        type: Boolean,
+        default: false,
     },
 });
 

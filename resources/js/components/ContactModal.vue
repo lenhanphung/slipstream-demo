@@ -118,7 +118,13 @@ const handleSubmit = () => {
         return;
     }
     
-    emit('save', { ...formData.value });
+    // Ensure customer_id is always included
+    const data = {
+        ...formData.value,
+        customer_id: formData.value.customer_id || props.customerId,
+    };
+    
+    emit('save', data);
 };
 </script>
 

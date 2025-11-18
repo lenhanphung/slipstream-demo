@@ -71,14 +71,34 @@ docker-compose up -d
 ```
 
 This command will:
-- Build the PHP application container
+- Build the PHP application container (first time only)
 - Start MySQL database container
 - Start Nginx web server
 - Start Node.js service for asset compilation
-- Automatically run migrations and seeders
+- **Automatically install PHP dependencies** (composer install)
+- **Automatically install Node.js dependencies** (npm install)
+- **Automatically create .env file** from .env.example
+- **Automatically generate APP_KEY**
+- **Automatically run migrations and seeders**
 - Set up all necessary configurations
 
-#### Step 3: Access the Application
+**Note:** First time setup may take 3-5 minutes to download dependencies and build containers.
+
+#### Step 3: Wait for Setup to Complete
+
+Check logs to ensure everything is ready:
+```bash
+docker-compose logs -f app
+```
+
+You should see messages like:
+- "Vendor directory not found. Installing dependencies..." (first time only)
+- "Running migrations..."
+- "Running seeders..."
+- "Application is ready! Marking setup as complete..."
+
+#### Step 4: Access the Application
+
 Open your browser and navigate to:
 ```
 http://localhost

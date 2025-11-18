@@ -44,5 +44,6 @@ RUN chown -R www-data:www-data /var/www/html \
 # Expose port 9000 for PHP-FPM
 EXPOSE 9000
 
-CMD ["php-fpm"]
+# Default command - will be overridden by entrypoint
+CMD ["php-fpm", "-F"]
 

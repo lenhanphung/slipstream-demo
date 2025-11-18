@@ -1,6 +1,28 @@
 #!/bin/sh
 set -e
 
+# Lock file to prevent script from running multiple times (outside volume mount)
+LOCK_FILE=/tmp/.entrypoint-lock
+SETUP_FILE=/var/www/html/.setup-complete
+
+# If setup is already complete, just start PHP-FPM
+if [ -f "$SETUP_FILE" ]; then
+    echo "Setup already completed, starting PHP-FPM directly..."
+    exec php-fpm -F
+fi
+
+# Prevent concurrent execution
+if [ -f "$LOCK_FILE" ]; then
+    echo "Another setup is in progress, waiting..."
+    while [ -f "$LOCK_FILE" ]; do
+        sleep 1
+    done
+    exec php-fpm -F
+fi
+
+touch "$LOCK_FILE"
+trap "rm -f $LOCK_FILE" EXIT
+
 # Function to wait for MySQL
 wait_for_mysql() {
     echo "Waiting for MySQL to be ready..."
@@ -84,8 +106,13 @@ php artisan cache:clear || true
 php artisan route:clear || true
 php artisan view:clear || true
 
-echo "Application is ready! Starting PHP-FPM..."
+echo "Application is ready! Marking setup as complete..."
+touch "$SETUP_FILE"
 
-# Start PHP-FPM in foreground
-exec php-fpm
+echo "Starting PHP-FPM in foreground mode..."
+# Remove lock before starting PHP-FPM
+rm -f "$LOCK_FILE"
+
+# Start PHP-FPM in foreground mode (this replaces the shell process)
+exec php-fpm -F
 

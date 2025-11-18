@@ -27,6 +27,9 @@ RUN chmod +x /docker-entrypoint.sh
 # Copy PHP-FPM override config
 COPY docker/php/php-fpm-override.conf /usr/local/etc/php-fpm.d/zz-docker.conf
 
+# Override listen address in www.conf
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 0.0.0.0:9000/' /usr/local/etc/php-fpm.d/www.conf || true
+
 # Install MySQL client for healthcheck
 RUN apt-get update && apt-get install -y default-mysql-client && rm -rf /var/lib/apt/lists/*
 

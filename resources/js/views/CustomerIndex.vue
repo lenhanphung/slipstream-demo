@@ -232,7 +232,7 @@ const handleSaveCustomer = async (data) => {
 
             await fetchContacts(newCustomer.id);
             await fetchCustomers(); // Refresh list to update contact count
-            // Don't close modal - allow user to add more contacts
+            closeCustomerModal(); // Close modal after creating customer
         }
     } catch (error) {
         console.error('Error saving customer:', error);

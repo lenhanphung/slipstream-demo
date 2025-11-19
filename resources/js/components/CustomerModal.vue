@@ -279,5 +279,9 @@ const handleDeleteContact = (contact) => {
         emit('delete-contact', contact);
     }
 };
+
+const handleDeletePendingContact = (contact) => {
+    emit('delete-pending-contact', contact);
+};
 </script>
 
